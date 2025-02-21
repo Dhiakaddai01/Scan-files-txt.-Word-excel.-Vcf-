@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>أدوات الملفات المتكاملة</title>
+    <!-- شكرًا للمطور DHIA KADDAI -->
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ff;
+            --neon-green: #00ff00;
+            --neon-orange: #ff6600;
+            --neon-cyan: #00ffff;
+            --bg-dark: #1a1a1a;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .nav {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+            position: sticky;
+            top: 0;
+            background: var(--bg-dark);
+            z-index: 100;
+            padding: 10px 0;
+            border-bottom: 2px solid var(--neon-blue);
+        }
+
+        .nav-btn {
+            background: rgba(160, 32, 240, 0.3);
+            border: 2px solid var(--neon-blue);
+            color: white;
+            padding: 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-size: 1.1em;
+        }
+
+        .nav-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--neon-pink);
+        }
+
+        .page-section {
+            display: none;
+            border: 2px solid var(--neon-blue);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            animation: glow 1.5s infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 10px var(--neon-blue); }
+            to { box-shadow: 0 0 20px var(--neon-pink); }
+        }
+
+        .active-section {
+            display: block;
+        }
+
+        .file-input-label {
+            display: block;
+            text-align: center;
+            padding: 20px;
+            border: 2px dashed var(--neon-green);
+            margin: 20px 0;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .file-input-label:hover {
+            background: rgba(0,255,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border: 2px solid var(--neon-orange);
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid var(--neon-orange);
+            text-align: center;
+        }
+
+        .contact-card {
+            border: 2px solid var(--neon-cyan);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            animation: card-glow 1.5s infinite alternate;
+        }
+
+        @keyframes card-glow {
+            from { box-shadow: 0 0 10px var(--neon-cyan); }
+            to { box-shadow: 0 0 20px #00ff88; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.8/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="nav">
+        <button class="nav-btn" onclick="showSection('merge')">دمج TXT</button>
+        <button class="nav-btn" onclick="showSection('txt')">عرض TXT</button>
+        <button class="nav-btn" onclick="showSection('word')">عرض Word</button>
+        <button class="nav-btn" onclick="showSection('excel')">عرض Excel</button>
+        <button class="nav-btn" onclick="showSection('vcf')">عرض VCF</button>
+    </div>
+
+    <!-- قسم دمج الملفات -->
+    <div id="merge" class="page-section active-section">
+        <h2>دمج ملفات TXT</h2>
+        <label class="file-input-label">
+            📁 اختر ملفات TXT (حد أقصى 15)
+            <input type="file" id="txtFiles" multiple accept=".txt" hidden>
+        </label>
+        <button onclick="mergeFiles()" class="nav-btn">بدء الدمج</button>
+        <div id="mergedContent"></div>
+        <a id="downloadLink" style="display: none;"></a>
+    </div>
+
+    <!-- قسم عرض TXT -->
+    <div id="txt" class="page-section">
+        <h2>عرض ملفات TXT</h2>
+        <label class="file-input-label">
+            📄 اختر ملف TXT
+            <input type="file" accept=".txt" hidden onchange="processTXT(this)">
+        </label>
+        <div id="txtContent"></div>
+    </div>
+
+    <!-- قسم عرض Word -->
+    <div id="word" class="page-section">
+        <h2>عرض ملفات Word</h2>
+        <label class="file-input-label">
+            📄 اختر ملف DOCX
+            <input type="file" accept=".docx" hidden onchange="processWord(this)">
+        </label>
+        <div id="wordContent"></div>
+    </div>
+
+    <!-- قسم عرض Excel -->
+    <div id="excel" class="page-section">
+        <h2>عرض ملفات Excel</h2>
+        <label class="file-input-label">
+            📑 اختر ملف Excel
+            <input type="file" accept=".xlsx,.xls" hidden onchange="processExcel(this)">
+        </label>
+        <table id="excelTable"></table>
+    </div>
+
+    <!-- قسم عرض VCF -->
+    <div id="vcf" class="page-section">
+        <h2>عرض ملفات VCF</h2>
+        <label class="file-input-label">
+            📇 اختر ملف VCF
+            <input type="file" accept=".vcf" hidden onchange="processVCF(this)">
+        </label>
+        <div id="vcfContacts"></div>
+    </div>
+
+    <script>
+        // وظائف التنقل بين الأقسام
+        function showSection(sectionId) {
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.remove('active-section');
+            });
+            document.getElementById(sectionId).classList.add('active-section');
+        }
+
+        // دمج الملفات
+        async function mergeFiles() {
+            const files = document.getElementById('txtFiles').files;
+            if(files.length > 15) return alert('الحد الأقصى 15 ملف!');
+            
+            let mergedContent = '';
+            for(const file of files) {
+                mergedContent += await file.text() + '\n\n';
+            }
+
+            const blob = new Blob([mergedContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.getElementById('downloadLink');
+            link.href = url;
+            link.download = '01.txt';
+            link.style.display = 'block';
+            link.innerHTML = '⬇️ تحميل الملف المدمج';
+            
+            document.getElementById('mergedContent').textContent = mergedContent;
+        }
+
+        // معالجة ملفات TXT
+        async function processTXT(input) {
+            const content = await input.files[0].text();
+            document.getElementById('txtContent').textContent = content;
+        }
+
+        // معالجة ملفات Word
+        async function processWord(input) {
+            const arrayBuffer = await input.files[0].arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            document.getElementById('wordContent').innerHTML = result.value
+                .replace(/\n/g, '<br>')
+                .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+        }
+
+        // معالجة ملفات Excel
+        async function processExcel(input) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const html = XLSX.utils.sheet_to_html(worksheet);
+                document.getElementById('excelTable').innerHTML = html;
+            };
+            reader.readAsArrayBuffer(input.files[0]);
+        }
+
+        // معالجة ملفات VCF
+        async function processVCF(input) {
+            const text = await input.files[0].text();
+            const contacts = text.split('BEGIN:VCARD').slice(1);
+            const container = document.getElementById('vcfContacts');
+            container.innerHTML = '';
+            
+            contacts.forEach(contact => {
+                const card = document.createElement('div');
+                card.className = 'contact-card';
+                const lines = contact.split('\n');
+                const info = {name: 'غير معروف', phone: 'لا يوجد', email: 'لا يوجد'};
+                
+                lines.forEach(line => {
+                    if (line.startsWith('FN:')) info.name = line.split(':')[1];
+                    if (line.startsWith('TEL;')) info.phone = line.split(':')[1];
+                    if (line.startsWith('EMAIL;')) info.email = line.split(':')[1];
+                });
+
+                card.innerHTML = `
+                    <p>الاسم: ${info.name}</p>
+                    <p>الهاتف: ${info.phone}</p>
+                    <p>البريد: ${info.email}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
